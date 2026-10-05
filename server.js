@@ -16,6 +16,26 @@ const countriesRoutes = require("./routes/countriesRoutes");
 
 
 const app = express();
+let databaseConnection;
+
+const connectDatabase = async () => {
+  if (mongoose.connection.readyState === 1) return;
+
+  if (!databaseConnection) {
+    databaseConnection = mongoose
+      .connect(process.env.MONGO_DB_URL)
+      .then(async () => {
+        console.log("Database connected");
+        await seedPlans();
+      })
+      .catch((error) => {
+        databaseConnection = null;
+        throw error;
+      });
+  }
+
+  await databaseConnection;
+};
 
 // Middlewares
 app.set("trust proxy", 1);
@@ -27,17 +47,31 @@ app.use(bodyParser.json());
 // Serve the uploads directory as
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+const frontendOrigin = process.env.FRONTEND_URL
+  ? new URL(process.env.FRONTEND_URL).origin
+  : null;
+
 app.use(
   cors({
     origin: [
+      frontendOrigin,
       "https://wealthkapitel.com",
       "https://www.wealthkapitel.com",
       "http://localhost:5173",
       "https://backend.wealthkapitel.com",
-    ],
+    ].filter(Boolean),
     credentials: true,
   })
 );
+
+app.use("/api", async (req, res, next) => {
+  try {
+    await connectDatabase();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Routes
 app.use("/api/users", userRoute);
@@ -55,19 +89,11 @@ app.get("/", (req, res) => {
 // Error Handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 9009;
+module.exports = app;
 
-// Connect to database and seed plans
-mongoose
-  .connect(process.env.MONGO_DB_URL)
-  .then(async () => {
-    console.log("Database connected");
-
-    // Seed investment plans if they don't exist
-    await seedPlans();
-
-    app.listen(PORT, () => {
-      console.log(`Server running on ${PORT}`);
-    });
-  })
-  .catch((err) => console.error("Database connection error:", err));
+if (require.main === module) {
+  const PORT = process.env.PORT || 9009;
+  app.listen(PORT, () => {
+    console.log(`Server running on ${PORT}`);
+  });
+}
