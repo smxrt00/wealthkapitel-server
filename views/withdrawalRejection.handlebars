@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Withdrawal Rejection Email</title>
+    <style>
+      body {
+        background-color: #f0f0f0; /* Light Gray */
+        margin: 0;
+        padding: 0;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .container {
+        max-width: 600px;
+        margin: 30px auto;
+        background-color: #2f4f4f; /* Dark Gray */
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .header h2 {
+        color: #f0f7f4; /* Light Green */
+        margin: 0;
+        font-size: 1.8rem;
+      }
+      .content {
+        color: #f0f7f4; /* Light Gray */
+        line-height: 1.6;
+        font-size: 1rem;
+      }
+      .content strong {
+        color: #125699; /* Light Green */
+      }
+      .content p {
+        margin: 15px 0;
+      }
+      .consu {
+        background: #f0f7f4;
+        color: #125699; /* Dark Navy Blue */
+        padding: 12px 16px;
+        border-radius: 5px;
+        margin: 20px 0;
+        text-align: center;
+        font-weight: bold;
+      }
+      .button-container {
+        text-align: center;
+        margin-top: 20px;
+      }
+      .btn {
+        display: inline-block;
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 10px 20px;
+        margin: 10px 5px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        color: #ffffff; /* White */
+      }
+      .btn-primary {
+        background-color: #4682b4; /* Steel Blue */
+      }
+      .btn-secondary {
+        background-color: #1e90ff; /* Dodger Blue */
+      }
+      .footer {
+        margin-top: 30px;
+        text-align: center;
+        font-size: 0.9rem;
+        color: #f0f7f4;
+      }
+      .footer a {
+        color: #1e90ff; /* Light Green */
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>WealthKapitel</h2>
+      </div>
+      <div class="content">
+        <h3>Hello, <span class="color-danger">{{name}}</span></h3>
+        <p>
+          Unfortunately, your withdrawal request for <strong>${{amount}}</strong> has been rejected. We apologize for any inconvenience this may have caused.
+        </p>
+        <p>
+          Withdrawal Details:
+          <br />
+          <strong>Wallet Address:</strong> {{walletAddress}}
+        </p>
+        <p class="consu">
+          For further assistance or inquiries, please feel free to contact our support team.
+        </p>
+        <div class="button-container">
+          <a href="https://www.WealthKapitel.com/contact" class="btn btn-primary">Contact Support</a>
+        </div>
+      </div>
+      <div class="footer">
+        <p>Thank you for choosing WealthKapitel.</p>
+        <p>
+          Visit our website: 
+          <a href="https://www.WealthKapitel.com">www.WealthKapitel.com</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

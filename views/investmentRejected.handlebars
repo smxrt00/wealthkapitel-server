@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investment Not Approved</title>
+  <style>
+    body {
+      background-color: #f0f0f0; /* Light Gray */
+      padding: 30px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .container {
+      background-color: #2f4f4f; /* Dark Gray */
+      padding: 20px;
+      border-radius: 8px;
+      color: #f0f7f4; /* Light Gray */
+    }
+    .header {
+      color: #f0f7f4; /* Red */
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    strong {
+      color: #87ea88; /* Light Green */
+    }
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #ff4d4f; /* Red */
+      color: #ffffff; /* White */
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    a:hover {
+      background-color: #e43e3e; /* Darker Red */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="header">Hello, {{userName}}</h1>
+    <p>We regret to inform you that your investment was not approved:</p>
+    <ul>
+      <li><strong>Investment Plan:</strong> {{plan}}</li>
+      <li><strong>Amount:</strong> ${{amount}}</li>
+      <li><strong>Start Date:</strong> {{startDate}}</li>
+      <li><strong>End Date:</strong> {{endDate}}</li>
+      <li><strong>Maturity Amount:</strong> ${{maturityAmount}}</li>
+    </ul>
+    <p>If you have any questions, feel free to contact us for assistance.</p>
+    <a href="https://www.wealtybuilders.com/contact">Contact Support</a>
+  </div>
+</body>
+</html>
