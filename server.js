@@ -96,7 +96,10 @@ app.use("/api", async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Database connection error:", error.message);
-    res.status(503).json({ message: "Service temporarily unavailable" });
+    res.status(503).json({
+      message: "Service temporarily unavailable",
+      reason: error.message, // remove after debugging
+    });
   }
 });
 
