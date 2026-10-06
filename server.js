@@ -68,18 +68,25 @@ try {
   console.warn("FRONTEND_URL is missing or invalid");
 }
 
-app.use(
-  cors({
-    origin: [
-      frontendOrigin,
-      "https://wealthkapitel.com",
-      "https://www.wealthkapitel.com",
-      "https://backend.wealthkapitel.com",
-      "http://localhost:5173",
-    ].filter(Boolean),
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: [
+    frontendOrigin,
+    "https://wealthkapitel.com",
+    "https://www.wealthkapitel.com",
+    "https://backend.wealthkapitel.com",
+    "http://localhost:5173",
+  ].filter(Boolean),
+  credentials: true,
+};
+
+// Handles normal requests and OPTIONS preflight requests
+app.use(cors(corsOptions));
+
+// Prevent browsers from caching API responses
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -96,10 +103,7 @@ app.use("/api", async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Database connection error:", error.message);
-    res.status(503).json({
-      message: "Service temporarily unavailable",
-      reason: error.message, // remove after debugging
-    });
+    res.status(503).json({ message: "Service temporarily unavailable" });
   }
 });
 
