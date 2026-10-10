@@ -95,6 +95,9 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 // Works only for files committed with your code. Runtime uploads will not persist on Vercel.
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Country data is static and should remain available if MongoDB is down.
+app.use("/api", countriesRoutes);
+
 /* ---------- Database gate for API routes ---------- */
 
 app.use("/api", async (req, res, next) => {
@@ -113,7 +116,6 @@ app.use("/api/users", userRoute);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/invest", investmentRoutes);
 app.use("/api/withDraw", withDrawRoutes);
-app.use("/api", countriesRoutes);
 // app.use("/api/visitors", visitorRoutes);
 
 app.get("/", (req, res) => {
