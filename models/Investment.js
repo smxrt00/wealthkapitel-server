@@ -8,6 +8,12 @@ const investmentSchema = new mongoose.Schema(
     startDate: Date,
     endDate: Date,
     maturityAmount: Number,
+    durationDays: Number,
+    interestRate: Number,
+    accrualIntervalDays: Number,
+    accruedPeriods: { type: Number, default: 0 },
+    accruedProfit: { type: Number, default: 0 },
+    scheduleVersion: { type: Number, default: 1 },
     status: {
       type: String,
       enum: ["Pending", "Active", "Rejected", "Ended"], // Ensure consistency with investment status

@@ -3,32 +3,46 @@ const User = require("../models/userModel");
 const sendWithdrawalEmail = require("../utils/sendWithdrawalEmail");
 const asyncHandler = require("express-async-handler");
 const sendWithdrawalApprovalEmail = require("../utils/sendWithdrawalApprovalEmail");
+const processUserInvestments = require("../utils/processUserInvestments");
 
 
 const createWithdrawalRequest = asyncHandler(async (req, res) => {
   const { amount, walletAddress } = req.body;
   const userId = req.user._id;
+  const withdrawalAmount = Number(amount);
 
-  if (amount < 50) {
+  if (!Number.isFinite(withdrawalAmount) || withdrawalAmount < 50) {
     return res.status(400).json({
-      message: "The minimum amount for withdrawal is $50.",
+      message: "Enter a valid withdrawal amount of at least $50.",
+    });
+  }
+
+  const investmentState = await processUserInvestments(userId);
+  if (!investmentState) return res.status(404).json({ message: "User not found." });
+  if (investmentState.activeInvestments.length > 0) {
+    return res.status(403).json({
+      message: "Withdrawals are locked until all active investments mature.",
+      nextMaturityDate: investmentState.activeInvestments
+        .map(({ endDate }) => endDate)
+        .filter(Boolean)
+        .sort((left, right) => left - right)[0] || null,
     });
   }
 
   // Find the user and check balance
   const user = await User.findById(userId);
-  if (!user || user.totalMaturityAmount < amount) {
+  if (!user || user.totalMaturityAmount < withdrawalAmount) {
     return res.status(400).json({ message: "Insufficient balance." });
   }
 
   // Deduct the amount from the user's balance (set as pending)
-  user.totalMaturityAmount -= amount;
+  user.totalMaturityAmount -= withdrawalAmount;
   await user.save();
 
   // Create the withdrawal request
   const newWithdrawal = new Withdrawal({
     user: userId,
-    amount,
+    amount: withdrawalAmount,
     walletAddress,
     status: "Pending",
     requestDate: new Date(),

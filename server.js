@@ -1,3 +1,6 @@
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -105,7 +108,8 @@ app.use("/api", async (req, res, next) => {
     await connectDatabase();
     next();
   } catch (error) {
-    console.error("Database connection error:", error.message);
+    // Log the full error (stack and code), not just the message
+    console.error("Database connection error:", error);
     res.status(503).json({ message: "Service temporarily unavailable" });
   }
 });
@@ -128,7 +132,17 @@ app.use(errorHandler);
 
 module.exports = app;
 
+/* ---------- Local development only ---------- */
+
 if (require.main === module) {
   const PORT = process.env.PORT || 9009;
-  app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+  app.listen(PORT, () => {
+    console.log(`Server running on ${PORT}`);
+
+    // Connect immediately so the result shows in the terminal on startup.
+    // This block never runs on Vercel, so serverless behaviour is unchanged.
+    connectDatabase().catch((error) => {
+      console.error("Initial database connection failed:", error);
+    });
+  });
 }

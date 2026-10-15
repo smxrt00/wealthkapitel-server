@@ -5,6 +5,7 @@ const {
   getTotalInvestmentAmount,
   investmentHistory,
   checkAndDepositMaturityAmounts,
+  getWithdrawalEligibility,
   getTransactionHistory,
   approveInvestment,
   rejectInvestment,
@@ -19,10 +20,10 @@ const router = express.Router();
 
 // Route to start an investment
 router.post("/start-invest", protect, verifiedOnly, startInvestment);
-router.put("/:investmentId/approve", approveInvestment);
+router.put("/:investmentId/approve", protect, adminOnly, approveInvestment);
 
 // Reject investment route
-router.put("/:investmentId/reject", rejectInvestment);
+router.put("/:investmentId/reject", protect, adminOnly, rejectInvestment);
 
 router.get(
   "/total-investment",
@@ -38,6 +39,7 @@ router.get(
   investmentHistory
 );
 router.get("/deposit-maturity", protect, verifiedOnly, checkAndDepositMaturityAmounts);
+router.get("/withdrawal-eligibility", protect, verifiedOnly, getWithdrawalEligibility);
 router.get("/getTransactionHistory", protect, verifiedOnly, getTransactionHistory);
 router.get("/investments/:investmentId", getInvestmentDetails);
 router.get("/adminPendingInvestment", protect, verifiedOnly, adminOnly, adminPendingInvestment);

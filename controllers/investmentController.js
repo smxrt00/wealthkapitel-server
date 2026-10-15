@@ -8,6 +8,8 @@ const { sendAdminNotificationEmail } = require("../utils/emailUtils");
 const {
   sendUserNotificationEmail,
 } = require("../services/sendUserNotificationEmail");
+const { getScheduledPeriods, calculateAccrual } = require("../utils/investmentSchedule");
+const processUserInvestments = require("../utils/processUserInvestments");
 
 
 // const startInvestment = asyncHandler(async (req, res) => {
@@ -182,53 +184,29 @@ const startInvestment = asyncHandler(async (req, res) => {
     });
   }
 
-  // ✅ Define interest rate & maturity range per plan
-  let interestRate, minMaturity, maxMaturity;
-  if (plan.name === "Basic Plan") {
-    interestRate = 10; // 10% interest
-    minMaturity = 3500;
-    maxMaturity = 10000;
-  } else if (plan.name === "Standard Plan") {
-    interestRate = 15; // 15% interest
-    minMaturity = 10000;
-    maxMaturity = 20000;
-  } else if (plan.name === "Premium Plan") {
-    interestRate = 18; // 18% interest
-    minMaturity = 21000;
-    maxMaturity = 40000;
-  } else if (plan.name === "Elite Plan") {
-    interestRate = 23; // 23% interest
-    minMaturity = 45000;
-    maxMaturity = 100000;
-  } else {
-    return res.status(400).json({
-      message: "Investment plan does not match any known category.",
-    });
+  if (!plan.accrualIntervalDays || !plan.durationDays || !plan.interestRate) {
+    return res.status(400).json({ message: "The selected plan schedule is incomplete." });
   }
 
-  console.log(`Using interest rate for ${plan.name}: ${interestRate}%`);
-
-  // ✅ Calculate maturity amount with proper scaling
-  const baseRange = plan.maxAmount - plan.minAmount;
-  const userInvestmentPosition = (investmentAmount - plan.minAmount) / baseRange; // Scaling factor (0 to 1)
-
-  let scaledMaturityAmount =
-    minMaturity + userInvestmentPosition * (maxMaturity - minMaturity);
-
-  scaledMaturityAmount = parseFloat(scaledMaturityAmount.toFixed(2)); // Round to 2 decimal places
-
-  console.log(`Final maturity amount for ${plan.name}: $${scaledMaturityAmount}`);
-
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + plan.durationDays);
+  const expectedProfit = Number(
+    (
+      investmentAmount *
+      (plan.interestRate / 100) *
+      getScheduledPeriods(plan.durationDays, plan.accrualIntervalDays)
+    ).toFixed(2)
+  );
 
   const newInvestment = new Investment({
     user: userId,
     plan: plan.name,
     amount: investmentAmount,
-    startDate: new Date(),
-    maturityAmount: scaledMaturityAmount,
-    endDate,
+    maturityAmount: expectedProfit,
+    durationDays: plan.durationDays,
+    interestRate: plan.interestRate,
+    accrualIntervalDays: plan.accrualIntervalDays,
+    accruedPeriods: 0,
+    accruedProfit: 0,
+    scheduleVersion: 2,
     status: "Pending",
     adminApprovalConfirmation: "Pending",
   });
@@ -303,9 +281,38 @@ const approveInvestment = asyncHandler(async (req, res) => {
   }
 
   const user = investment.user;
+  if (!user || user.balance < investment.amount) {
+    return res.status(400).json({ message: "User no longer has enough balance to approve this investment." });
+  }
+
+  const plan = await InvestmentPlan.findOne({ name: investment.plan });
+  const durationDays = investment.durationDays || plan?.durationDays;
+  const interestRate = investment.interestRate ?? plan?.interestRate;
+  const accrualIntervalDays = investment.accrualIntervalDays || plan?.accrualIntervalDays;
+  if (!durationDays || interestRate == null || !accrualIntervalDays) {
+    return res.status(400).json({ message: "The investment plan schedule is incomplete." });
+  }
+
+  investment.durationDays = durationDays;
+  investment.interestRate = interestRate;
+  investment.accrualIntervalDays = accrualIntervalDays;
+  investment.scheduleVersion = 2;
+  investment.accruedPeriods = 0;
+  investment.accruedProfit = 0;
+  investment.approvalDate = new Date();
+  investment.startDate = investment.approvalDate;
+  investment.endDate = new Date(
+    investment.approvalDate.getTime() + durationDays * 24 * 60 * 60 * 1000
+  );
+  investment.maturityAmount = Number(
+    (
+      investment.amount *
+      (interestRate / 100) *
+      getScheduledPeriods(durationDays, accrualIntervalDays)
+    ).toFixed(2)
+  );
   investment.status = "Active";
   investment.adminApprovalConfirmation = "approved";
-  investment.approvalDate = new Date();
 
   user.balance -= investment.amount;
   user.investmentBalance += investment.amount;
@@ -452,31 +459,34 @@ const investmentHistory = asyncHandler(async (req, res) => {
  * @access Private
  */
 const checkAndDepositMaturityAmounts = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
-  if (!user) {
+  const result = await processUserInvestments(req.user._id);
+  if (!result) {
     return res.status(404).json({ message: "User not found." });
   }
 
-  const investments = await Investment.find({
-    user: user._id,
-    status: "Active",
+  res.status(200).json({
+    message: "Investment accruals processed successfully.",
+    userBalance: result.user.balance,
+    totalMaturityAmount: result.user.totalMaturityAmount,
+    newlyAccruedProfit: result.newlyAccruedProfit,
+    principalReturned: result.principalReturned,
   });
-  const now = new Date();
+});
 
-  for (const investment of investments) {
-    if (now >= investment.endDate) {
-      user.totalMaturityAmount += investment.maturityAmount;
-      user.investmentBalance -= investment.amount;
-      investment.status = "Ended";
-      await investment.save();
-    }
-  }
+const getWithdrawalEligibility = asyncHandler(async (req, res) => {
+  const result = await processUserInvestments(req.user._id);
+  if (!result) return res.status(404).json({ message: "User not found." });
 
-  await user.save();
+  const activeEndDates = result.activeInvestments
+    .map(({ endDate }) => endDate)
+    .filter(Boolean)
+    .sort((left, right) => left - right);
 
   res.status(200).json({
-    message: "Maturity amounts deposited successfully.",
-    userBalance: user.balance,
+    canWithdraw: result.activeInvestments.length === 0,
+    activeInvestmentCount: result.activeInvestments.length,
+    nextMaturityDate: activeEndDates[0] || null,
+    totalMaturityAmount: result.user.totalMaturityAmount,
   });
 });
 
@@ -576,6 +586,7 @@ module.exports = {
   getTotalInvestmentAmount,
   investmentHistory,
   checkAndDepositMaturityAmounts,
+  getWithdrawalEligibility,
   getTransactionHistory,
   getInvestmentDetails,
   adminPendingInvestment

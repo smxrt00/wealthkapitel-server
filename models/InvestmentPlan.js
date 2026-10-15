@@ -6,7 +6,8 @@ const investmentPlanSchema = new mongoose.Schema({
   minAmount: { type: Number, required: true },
   maxAmount: { type: Number, required: true },
   durationDays: { type: Number, required: true }, 
-  interestRate: { type: Number, required: true }, // Interest rate as a percentage
+  interestRate: { type: Number, required: true },
+  accrualIntervalDays: { type: Number, required: true },
 });
 
 

@@ -4,7 +4,11 @@ const jwt = require("jsonwebtoken");
 
 const protect = asyncHandler(async (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    const authorization = req.headers.authorization;
+    const bearerToken = authorization?.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : null;
+    const token = req.cookies?.token || bearerToken;
     if (!token) {
       res.status(401);
       throw new Error("Not authorized, please login");
